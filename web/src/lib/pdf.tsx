@@ -1,4 +1,4 @@
-import { Document, Page, StyleSheet, Text, View, pdf } from '@react-pdf/renderer'
+import { Document, Image, Page, StyleSheet, Text, View, pdf } from '@react-pdf/renderer'
 import type { ResumeSchema } from '../types/resume'
 
 const styles = StyleSheet.create({
@@ -9,7 +9,9 @@ const styles = StyleSheet.create({
     color: '#1a1a1a',
     fontFamily: 'Helvetica',
   },
-  header: { marginBottom: 14 },
+  header: { marginBottom: 14, display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 14 },
+  headerText: { flex: 1 },
+  photo: { width: 72, height: 72, borderRadius: 36, objectFit: 'cover' },
   name: { fontSize: 22, fontWeight: 'bold', letterSpacing: 1 },
   headline: { fontSize: 12, color: '#4a4a4a', marginTop: 3 },
   contactRow: { marginTop: 6, fontSize: 9, color: '#555', display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
@@ -61,17 +63,20 @@ export function ResumePdf({ resume, accent }: { resume: ResumeSchema; accent: st
     >
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
-          {c.fullName && <Text style={[styles.name, { color: accent }]}>{c.fullName}</Text>}
-          {c.headline && <Text style={styles.headline}>{c.headline}</Text>}
-          {contactItems.length > 0 && (
-            <View style={styles.contactRow}>
-              {contactItems.map((item, i) => (
-                <Text key={i} style={{ fontSize: 9 }}>
-                  {item}
-                </Text>
-              ))}
-            </View>
-          )}
+          <View style={styles.headerText}>
+            {c.fullName && <Text style={[styles.name, { color: accent }]}>{c.fullName}</Text>}
+            {c.headline && <Text style={styles.headline}>{c.headline}</Text>}
+            {contactItems.length > 0 && (
+              <View style={styles.contactRow}>
+                {contactItems.map((item, i) => (
+                  <Text key={i} style={{ fontSize: 9 }}>
+                    {item}
+                  </Text>
+                ))}
+              </View>
+            )}
+          </View>
+          {c.photoUrl && <Image src={c.photoUrl} style={styles.photo} />}
         </View>
 
         {resume.summary && (
