@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "created": "2026-08-08",
+  "last_updated": "2026-08-08",
+  "project": {
+    "name": "CVMaker",
+    "tagline": "Turn a simple form into a beautiful, shareable CV website.",
+    "description": "CVMaker lets anyone build a professional resume website by filling in a guided form (contact, summary, experience, education, skills, projects, languages). The app renders their answers into a hand-picked template, gives a live preview, and produces both a shareable hosted page (/r/:slug) and a one-click vector PDF download. Users can also import an existing resume file (PDF/DOCX) to pre-fill the form. Built entirely on the free tier: Netlify hosting + Firebase (auth + Firestore) backend + @react-pdf/renderer for true vector PDF export.",
+    "status": "Phase 0 - scaffold (React stack confirmed, Firebase + react-pdf integrated)",
+    "github": "TBD (create repo, e.g. github.com/Kalabduke/CVMaker.git)",
+    "live_url": "TBD (Netlify deploy)",
+    "license": "MIT (project code); templates carry their own licenses"
+  },
+  "tech_stack": {
+    "web": {
+      "framework": "React 19 + TypeScript + Vite",
+      "styling": "Tailwind CSS v4",
+      "rendering": "Templates are React components keyed by template id; resume data is a plain typed schema",
+      "pdf_export": "@react-pdf/renderer — true vector PDF (selectable/searchable text) rendered client-side, one-click download with no print dialog (see web/src/lib/pdf.ts)",
+      "file_import": "mammoth.js for .docx → HTML; pdf.js (or unpdf) for .pdf → text; best-effort mapping into the schema",
+      "state": "localStorage autosave + export/import JSON"
+    },
+    "backend": "Firebase (free Spark plan): anonymous auth + Firestore collection `resumes` keyed by share slug { resume, slug, updatedAt } — config via web/.env (see web/.env.example); app falls back to localStorage when unconfigured",
+    "hosting": "Netlify (free) — web/ subfolder, auto-deploy from GitHub main"
+  },
+  "flow": {
+    "1_choose_template": "Pick a template (Modern / Minimal / Classic / Creative / Tech) — switching templates never loses data",
+    "2_fill_form": "Guided sections: Contact, Summary/About, Experience, Education, Skills, Projects, Languages, Links. Optional: upload existing PDF/DOCX to pre-fill",
+    "3_live_preview": "Real-time preview pane renders the selected template as data changes",
+    "4_share_and_export": "Shareable hosted URL (/r/:slug) + Download PDF via print dialog + export/import JSON backup",
+    "5_edit_anytime": "Return to edit; every change re-renders live"
+  },
+  "templates": {
+    "registry": "web/src/templates/index.ts — maps template id → React component + metadata (name, vibe, accent color, tags)",
+    "seed": [
+      { "id": "modern", "name": "Modern", "vibe": "two-column, accent sidebar", "tags": ["clean", "ats-friendly"] },
+      { "id": "minimal", "name": "Minimal", "vibe": "single column, lots of whitespace", "tags": ["classic", "print-friendly"] },
+      { "id": "classic", "name": "Classic", "vibe": "traditional headings, serif accents", "tags": ["formal"] },
+      { "id": "creative", "name": "Creative", "vibe": "bold color blocks, asymmetric", "tags": ["design", "portfolio"] },
+      { "id": "tech", "name": "Tech", "vibe": "dark sidebar, mono accents", "tags": ["developer"] }
+    ],
+    "customization": "per-template accent color picker; section order preserved from the form",
+    "user_templates": "Users can send their own HTML/CSS templates — each gets converted to a React component + registered in the registry"
+  },
+  "resume_schema": {
+    "version": "1.0",
+    "sections": [
+      "contact: fullName, headline, email, phone, location, website, linkedin, github, photoUrl",
+      "summary: aboutText",
+      "experience: [{ id, role, company, location, startDate, endDate, current, bullets[] }]",
+      "education: [{ id, degree, school, location, startDate, endDate, details }]",
+      "skills: [{ id, name, level (1-5) }] or free-tag list",
+      "projects: [{ id, name, description, link, tech[] }]",
+      "languages: [{ id, name, proficiency }]",
+      "custom: [{ id, title, items[] }]"
+    ]
+  },
+  "share_page": {
+    "url_pattern": "/r/:slug",
+    "slug": "derived from fullName + short random suffix",
+    "backend": "Firestore doc resumes/:slug when Firebase configured; localStorage fallback otherwise",
+    "pwa": "manifest + service worker so shared resumes are viewable offline (future)",
+    "meta": "per-resume og:title/og:image for clean link previews"
+  },
+  "monetization_ideas": {
+    "free": "unlimited resumes on seed templates, PDF download, share links",
+    "paid_later": "premium templates, custom accents, no CVMaker badge, direct one-click PDF (already free via @react-pdf/renderer), resume scoring/AI tips"
+  },
+  "roadmap": {
+    "phase_0": "Scaffold: repo, master file, docs, web app, template engine, 5 seed templates",
+    "phase_1": "Form UX + live preview + share links (Firestore) + one-click vector PDF export (@react-pdf/renderer)",
+    "phase_2": "Import existing resume (PDF/DOCX) with best-effort mapping",
+    "phase_3": "Firebase auth (anonymous + email), saved resume list, user template uploads",
+    "phase_4": "Monetization (premium templates / badge removal), PWA offline, analytics"
+  },
+  "directory_note": "This is the SINGLE SOURCE OF TRUTH for CVMaker. Update it with every meaningful change (user asks for it periodically)."
+}

@@ -1,0 +1,28 @@
+@import 'tailwindcss';
+
+/* App chrome (editor UI) is dark; the resume preview is a white "paper". */
+:root {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  background: #0b0b0e;
+  color: #e9e9ee;
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Hide editor chrome when printing — only the resume paper should print. */
+@media print {
+  body {
+    background: #fff;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .resume-paper {
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    margin: 0 !important;
+  }
+}
