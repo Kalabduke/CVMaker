@@ -20,6 +20,13 @@ export function ModernTemplate({ resume, accent }: { resume: ResumeSchema; accen
         className="w-[34%] shrink-0 px-6 py-8 text-white"
         style={{ background: accent }}
       >
+        {c.photoUrl && (
+          <img
+            src={c.photoUrl}
+            alt={c.fullName || 'Profile'}
+            className="mb-4 h-28 w-28 rounded-full object-cover ring-2 ring-white/40"
+          />
+        )}
         {c.fullName && (
           <h1 className="mb-1 text-2xl font-extrabold leading-tight">{c.fullName}</h1>
         )}
@@ -67,13 +74,14 @@ export function ModernTemplate({ resume, accent }: { resume: ResumeSchema; accen
 
       {/* Main */}
       <main className="flex-1 px-8 py-8">
-        {(c.email || c.phone || c.location || c.linkedin || c.github) && (
+        {(c.email || c.phone || c.location || c.linkedin || c.github || c.website) && (
           <div className="mb-6 flex flex-wrap gap-x-5 gap-y-1 text-[12px] text-neutral-500">
             {c.email && <span>{c.email}</span>}
             {c.phone && <span>{c.phone}</span>}
             {c.location && <span>{c.location}</span>}
             {c.linkedin && <span>{c.linkedin}</span>}
             {c.github && <span>{c.github}</span>}
+            {c.website && <span>{c.website}</span>}
           </div>
         )}
 
@@ -137,7 +145,7 @@ export function ModernTemplate({ resume, accent }: { resume: ResumeSchema; accen
         )}
 
         {resume.projects.length > 0 && (
-          <div>
+          <div className="mb-6">
             <SectionTitle accent={accent}>Projects</SectionTitle>
             <div className="space-y-3">
               {resume.projects.map((p) => (
@@ -161,6 +169,23 @@ export function ModernTemplate({ resume, accent }: { resume: ResumeSchema; accen
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {resume.custom.length > 0 && (
+          <div>
+            {resume.custom.map((sec) => (
+              <div key={sec.id} className="mb-6">
+                <SectionTitle accent={accent}>{sec.title || 'Additional'}</SectionTitle>
+                <ul className="space-y-1.5">
+                  {sec.items.map((it, i) => (
+                    <li key={i} className="text-[12.5px] leading-relaxed text-neutral-600">
+                      {it}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
           </div>
         )}
       </main>

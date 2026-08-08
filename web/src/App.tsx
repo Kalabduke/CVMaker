@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { ResumeSchema } from './types/resume'
-import { emptyResume } from './types/resume'
+import { sampleResume } from './lib/sample'
 import { Form } from './components/Form'
 import { getTemplate, TEMPLATE_LIST } from './templates'
 import { exportResumeJson, importResumeJson, loadResume, saveResume, loadSlug, saveSlug } from './lib/storage'
@@ -21,7 +21,7 @@ export default function App() {
   const shareMatch = useMemo(() => window.location.pathname.match(/^\/r\/([^/]+)\/?$/), [])
   if (shareMatch) return <SharePage slug={decodeURIComponent(shareMatch[1])} />
 
-  const [resume, setResume] = useState<ResumeSchema>(() => loadResume() ?? emptyResume())
+  const [resume, setResume] = useState<ResumeSchema>(() => loadResume() ?? sampleResume())
   const [templateId, setTemplateId] = useState('modern')
   const [accent, setAccent] = useState('#2563eb')
   const [slug, setSlug] = useState(() => loadSlug())

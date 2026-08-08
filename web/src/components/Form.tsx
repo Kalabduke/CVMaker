@@ -62,6 +62,10 @@ export function Form({ resume, onChange }: Props) {
           <Field label="LinkedIn" value={resume.contact.linkedin} onChange={(v) => setContact('linkedin', v)} placeholder="linkedin.com/in/..." />
           <Field label="GitHub" value={resume.contact.github} onChange={(v) => setContact('github', v)} placeholder="github.com/..." />
         </div>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Website" value={resume.contact.website} onChange={(v) => setContact('website', v)} placeholder="https://..." />
+          <Field label="Photo URL" value={resume.contact.photoUrl} onChange={(v) => setContact('photoUrl', v)} placeholder="https://.../photo.jpg" />
+        </div>
       </Section>
 
       <Section title="Summary">
@@ -90,6 +94,10 @@ export function Form({ resume, onChange }: Props) {
                 onChange({ ...resume, experience })
               }} />
             </div>
+            <Field label="Location" value={e.location} onChange={(v) => {
+              const experience = resume.experience.map((x) => (x.id === e.id ? { ...x, location: v } : x))
+              onChange({ ...resume, experience })
+            }} placeholder="Addis Ababa, Ethiopia" />
             <div className="grid grid-cols-3 gap-3">
               <Field label="Start" value={e.startDate} onChange={(v) => {
                 const experience = resume.experience.map((x) => (x.id === e.id ? { ...x, startDate: v } : x))
@@ -155,6 +163,12 @@ export function Form({ resume, onChange }: Props) {
                 onChange({ ...resume, education: resume.education.map((x) => (x.id === e.id ? { ...x, endDate: v } : x)) })
               }} />
             </div>
+            <Field label="Location" value={e.location} onChange={(v) => {
+              onChange({ ...resume, education: resume.education.map((x) => (x.id === e.id ? { ...x, location: v } : x)) })
+            }} placeholder="Addis Ababa, Ethiopia" />
+            <Field textarea label="Details (one per line — GPA, awards, exams)" value={e.details} onChange={(v) => {
+              onChange({ ...resume, education: resume.education.map((x) => (x.id === e.id ? { ...x, details: v } : x)) })
+            }} placeholder={'CGPA - 3.02\nExit exam - 80/100'} />
           </div>
         ))}
         <button
@@ -272,6 +286,39 @@ export function Form({ resume, onChange }: Props) {
             }}
           />
         </div>
+      </Section>
+
+      <Section title="Custom sections">
+        <p className="mb-3 text-[12px] text-neutral-500">
+          For Certificates, Awards, Volunteer work, or anything else — each section has a title and a list of entries.
+        </p>
+        {resume.custom.map((sec) => (
+          <div key={sec.id} className="rounded-lg border border-neutral-800 bg-neutral-900 p-3">
+            <div className="mb-2 flex justify-between text-[11px] text-neutral-500">
+              <span>Section</span>
+              <button
+                className="text-red-400 hover:text-red-300"
+                onClick={() => onChange({ ...resume, custom: resume.custom.filter((x) => x.id !== sec.id) })}
+              >
+                Remove
+              </button>
+            </div>
+            <Field label="Title" value={sec.title} onChange={(v) => {
+              onChange({ ...resume, custom: resume.custom.map((x) => (x.id === sec.id ? { ...x, title: v } : x)) })
+            }} placeholder="Certificates" />
+            <Field textarea label="Entries (one per line)" value={sec.items.join('\n')} onChange={(v) => {
+              onChange({ ...resume, custom: resume.custom.map((x) =>
+                x.id === sec.id ? { ...x, items: v.split('\n').filter(Boolean) } : x,
+              ) })
+            }} placeholder={'Final Project Exhibition — awarded 1st place.\nUniversity Volunteer Service — health awareness campaign.'} />
+          </div>
+        ))}
+        <button
+          className="rounded-lg border border-dashed border-neutral-600 px-3 py-2 text-[12px] text-neutral-400 hover:border-neutral-400 hover:text-neutral-200"
+          onClick={() => onChange({ ...resume, custom: [...resume.custom, { id: uid(), title: '', items: [] }] })}
+        >
+          + Add section
+        </button>
       </Section>
     </div>
   )

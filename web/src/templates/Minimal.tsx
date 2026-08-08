@@ -9,6 +9,14 @@ export function MinimalTemplate({ resume, accent }: { resume: ResumeSchema; acce
   return (
     <div className="min-h-full bg-white px-14 py-12 text-neutral-800">
       <header className="text-center">
+        {c.photoUrl && (
+          <img
+            src={c.photoUrl}
+            alt={c.fullName || 'Profile'}
+            className="mx-auto mb-4 h-28 w-28 rounded-full object-cover"
+            style={{ border: `2px solid ${accent}` }}
+          />
+        )}
         {c.fullName && (
           <h1 className="text-3xl font-light uppercase tracking-[0.22em]">{c.fullName}</h1>
         )}
@@ -18,7 +26,7 @@ export function MinimalTemplate({ resume, accent }: { resume: ResumeSchema; acce
           </p>
         )}
         <p className="mt-3 flex flex-wrap justify-center gap-x-5 gap-y-1 text-[12px] text-neutral-500">
-          {[c.email, c.phone, c.location, c.linkedin, c.github].filter(Boolean).map((s, i) => (
+          {[c.email, c.phone, c.location, c.linkedin, c.github, c.website].filter(Boolean).map((s, i) => (
             <span key={i}>{s}</span>
           ))}
         </p>
@@ -152,6 +160,21 @@ export function MinimalTemplate({ resume, accent }: { resume: ResumeSchema; acce
           </div>
         </section>
       )}
+
+      {resume.custom.length > 0 &&
+        resume.custom.map((sec) => (
+          <section key={sec.id}>
+            <Rule accent={accent} />
+            <h2 className="mb-3 text-[11px] font-bold uppercase tracking-[0.22em]" style={{ color: accent }}>
+              {sec.title || 'Additional'}
+            </h2>
+            <ul className="space-y-1.5 text-[12.5px] leading-relaxed text-neutral-600">
+              {sec.items.map((it, i) => (
+                <li key={i}>{it}</li>
+              ))}
+            </ul>
+          </section>
+        ))}
     </div>
   )
 }

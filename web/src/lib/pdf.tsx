@@ -174,6 +174,18 @@ export function ResumePdf({ resume, accent }: { resume: ResumeSchema; accent: st
             </View>
           </View>
         )}
+
+        {resume.custom.length > 0 &&
+          resume.custom.map((sec) => (
+            <View key={sec.id} style={styles.section}>
+              <SectionTitle>{sec.title || 'Additional'}</SectionTitle>
+              {sec.items.map((it, i) => (
+                <Text key={i} style={styles.bullet}>
+                  • {it}
+                </Text>
+              ))}
+            </View>
+          ))}
       </Page>
     </Document>
   )
