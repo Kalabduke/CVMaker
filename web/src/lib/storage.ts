@@ -2,6 +2,8 @@ import type { ResumeSchema } from '../types/resume'
 
 const KEY = 'cvmaker:resume:v1'
 const SLUG_KEY = 'cvmaker:slug:v1'
+const TEMPLATE_KEY = 'cvmaker:template:v1'
+const ACCENT_KEY = 'cvmaker:accent:v1'
 
 export function loadResume(): ResumeSchema | null {
   try {
@@ -26,6 +28,22 @@ export function loadSlug(): string {
 
 export function saveSlug(slug: string): void {
   localStorage.setItem(SLUG_KEY, slug)
+}
+
+export function loadTemplateId(): string {
+  return localStorage.getItem(TEMPLATE_KEY) ?? ''
+}
+
+export function saveTemplateId(id: string): void {
+  localStorage.setItem(TEMPLATE_KEY, id)
+}
+
+export function loadAccent(): string {
+  return localStorage.getItem(ACCENT_KEY) ?? ''
+}
+
+export function saveAccent(accent: string): void {
+  localStorage.setItem(ACCENT_KEY, accent)
 }
 
 export function exportResumeJson(resume: ResumeSchema): void {

@@ -1,13 +1,13 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { ResumeSchema } from './types/resume'
 import { sampleResume } from './lib/sample'
 import { Form } from './components/Form'
-import { getTemplate, TEMPLATE_LIST } from './templates'
-import type { TemplateDefinition } from './templates'
-import { exportResumeJson, importResumeJson, loadResume, saveResume, loadSlug, saveSlug } from './lib/storage'
+import { getTemplate } from './templates'
+import { exportResumeJson, importResumeJson, loadResume, saveResume, loadSlug, saveSlug, loadTemplateId, saveTemplateId, loadAccent, saveAccent } from './lib/storage'
 import { saveResumeToBackend } from './lib/backend'
 import { firebaseReady } from './lib/firebaseConfig'
 import { SharePage } from './pages/Share'
+import { GalleryPage } from './pages/Gallery'
 
 function slugify(name: string): string {
   const base = name
@@ -17,48 +17,9 @@ function slugify(name: string): string {
   return `${base || 'cv'}-${Math.random().toString(36).slice(2, 6)}`
 }
 
-/**
- * Live-rendered thumbnail of a template. Renders the real component at full
- * page width (820px) and scales it down to fit the card, so the preview shows
- * the true design including its accent colors.
- */
-function TemplateThumb({ def, resume }: { def: TemplateDefinition; resume: ResumeSchema }) {
-  const cardRef = useRef<HTMLDivElement>(null)
-  const innerRef = useRef<HTMLDivElement>(null)
-  const [scale, setScale] = useState(0.22)
-  const [height, setHeight] = useState(980)
-  const Comp = def.Component
-
-  useLayoutEffect(() => {
-    const card = cardRef.current
-    if (!card) return
-    const measure = () => {
-      const w = card.clientWidth - 10
-      if (w > 0) setScale(Math.min(w / 820, 0.35))
-      if (innerRef.current) setHeight(innerRef.current.offsetHeight)
-    }
-    measure()
-    const ro = new ResizeObserver(measure)
-    ro.observe(card)
-    return () => ro.disconnect()
-  }, [])
-
-  return (
-    <div ref={cardRef} className="w-full">
-      <div
-        className="relative w-full overflow-hidden rounded-md bg-white ring-1 ring-neutral-800"
-        style={{ height: Math.round(height * scale) + 6 }}
-      >
-        <div
-          ref={innerRef}
-          className="pointer-events-none select-none"
-          style={{ width: 820, transform: `scale(${scale})`, transformOrigin: 'top left' }}
-        >
-          <Comp resume={resume} accent={def.meta.defaultAccent} />
-        </div>
-      </div>
-    </div>
-  )
+/** Read the view from the URL hash. '#/edit' → editor, anything else → gallery. */
+function readView(): 'gallery' | 'editor' {
+  return window.location.hash.startsWith('#/edit') ? 'editor' : 'gallery'
 }
 
 export default function App() {
@@ -66,17 +27,43 @@ export default function App() {
   const shareMatch = useMemo(() => window.location.pathname.match(/^\/r\/([^/]+)\/?$/), [])
   if (shareMatch) return <SharePage slug={decodeURIComponent(shareMatch[1])} />
 
+  const [view, setView] = useState<'gallery' | 'editor'>(readView)
   const [resume, setResume] = useState<ResumeSchema>(() => loadResume() ?? sampleResume())
-  const [templateId, setTemplateId] = useState('modern')
-  const [accent, setAccent] = useState('#2563eb')
+  const [templateId, setTemplateId] = useState(() => {
+    const saved = loadTemplateId()
+    // Ignore a stale saved id that no longer exists in the template registry
+    return saved && getTemplate(saved).meta.id === saved ? saved : getTemplate('modern').meta.id
+  })
+  const [accent, setAccent] = useState(() => {
+    const saved = loadAccent()
+    return saved || getTemplate(templateId || 'modern').meta.defaultAccent
+  })
   const [slug, setSlug] = useState(() => loadSlug())
   const [toast, setToast] = useState('')
   const [downloading, setDownloading] = useState(false)
+
+  // Keep view in sync with the hash (back/forward buttons + refresh persistence)
+  useEffect(() => {
+    const onHash = () => {
+      setView(readView())
+      window.scrollTo(0, 0)
+    }
+    window.addEventListener('hashchange', onHash)
+    return () => window.removeEventListener('hashchange', onHash)
+  }, [])
 
   useEffect(() => {
     const t = setTimeout(() => saveResume(resume), 400)
     return () => clearTimeout(t)
   }, [resume])
+
+  useEffect(() => {
+    saveTemplateId(templateId)
+  }, [templateId])
+
+  useEffect(() => {
+    saveAccent(accent)
+  }, [accent])
 
   useEffect(() => {
     if (!toast) return
@@ -87,8 +74,13 @@ export default function App() {
   const template = useMemo(() => getTemplate(templateId), [templateId])
   const TemplateComponent = template.Component
 
-  // Thumbnails always render the same rich sample so every card looks designed.
-  const thumbResume = useMemo(() => sampleResume(), [])
+  const handleSelectTemplate = (id: string) => {
+    setTemplateId(id)
+    // Only reset the accent when switching to a *different* template, so a
+    // user's custom accent survives "Continue editing" on the same design.
+    if (id !== templateId) setAccent(getTemplate(id).meta.defaultAccent)
+    window.location.hash = '#/edit'
+  }
 
   const handleShare = async () => {
     const nextSlug = slug || slugify(resume.contact.fullName || 'cv')
@@ -125,19 +117,46 @@ export default function App() {
     }
   }
 
+  /* ---------------- Template gallery page ---------------- */
+  if (view === 'gallery') {
+    return <GalleryPage onSelect={handleSelectTemplate} currentTemplateId={templateId} />
+  }
+
+  /* ---------------- Editor page (Canva-style) ---------------- */
   return (
     <div className="min-h-screen bg-[#0b0b0e] text-neutral-100">
-      {/* Top bar */}
+      {/* Canva-style top toolbar */}
       <header className="no-print sticky top-0 z-20 border-b border-neutral-800 bg-[#0b0b0e]/90 backdrop-blur">
-        <div className="mx-auto flex max-w-[1400px] flex-wrap items-center gap-3 px-4 py-3">
-          <span className="text-[15px] font-extrabold tracking-tight">
-            CVMaker<span className="text-blue-400">.</span>
-          </span>
-          <span className="text-[11px] uppercase tracking-[0.2em] text-neutral-500">
-            Form → CV website
-          </span>
+        <div className="mx-auto flex max-w-[1400px] flex-wrap items-center gap-2 px-4 py-2.5">
+          <button
+            onClick={() => (window.location.hash = '#/')}
+            className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-[12.5px] font-semibold text-neutral-400 hover:bg-neutral-800 hover:text-neutral-100"
+            title="Back to templates"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+            Templates
+          </button>
+
+          <div className="flex items-center gap-2">
+            <span className="text-[15px] font-extrabold tracking-tight">
+              CVMaker<span className="text-blue-400">.</span>
+            </span>
+            <span className="hidden items-center gap-1.5 rounded-full border border-neutral-700 bg-neutral-900 px-2.5 py-1 text-[11px] text-neutral-400 sm:flex">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              {template.meta.name} · auto-saved
+            </span>
+          </div>
 
           <div className="ml-auto flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => (window.location.hash = '#/')}
+              className="rounded-lg border border-neutral-700 px-3 py-1.5 text-[12px] text-neutral-300 hover:border-neutral-500"
+              title="Switch to a different design"
+            >
+              Change template
+            </button>
             <label className="rounded-lg border border-neutral-700 px-3 py-1.5 text-[12px] text-neutral-300 hover:border-neutral-500">
               Import JSON
               <input
@@ -171,81 +190,39 @@ export default function App() {
             </button>
           </div>
         </div>
-      </header>
 
-      {/* Template picker with live thumbnails */}
-      <div className="no-print mx-auto max-w-[1400px] px-4 pt-4">
-        <div className="mb-3 flex flex-wrap items-center gap-2">
-          <span className="text-[11px] uppercase tracking-[0.18em] text-neutral-500">Template</span>
-          <span className="text-[11px] text-neutral-600">Pick a design · live previews</span>
-        </div>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-          {TEMPLATE_LIST.map((t) => {
-            const active = templateId === t.meta.id
-            return (
-              <button
-                key={t.meta.id}
-                className={`group rounded-xl border p-1.5 text-left transition-all ${
-                  active
-                    ? 'border-blue-400 bg-blue-500/10 shadow-lg shadow-blue-500/10'
-                    : 'border-neutral-800 bg-neutral-900/50 hover:-translate-y-0.5 hover:border-neutral-600 hover:bg-neutral-800/60'
-                }`}
-                onClick={() => {
-                  setTemplateId(t.meta.id)
-                  setAccent(t.meta.defaultAccent)
-                }}
-              >
-                <TemplateThumb def={t} resume={thumbResume} />
-                <div className="flex items-center justify-between gap-2 px-1.5 pb-1 pt-2">
-                  <span
-                    className={`truncate text-[12.5px] font-semibold ${
-                      active ? 'text-blue-200' : 'text-neutral-300 group-hover:text-neutral-100'
-                    }`}
-                  >
-                    {t.meta.name}
-                  </span>
-                  {active && (
-                    <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-blue-500 text-[10px] font-bold text-white">
-                      ✓
-                    </span>
-                  )}
-                </div>
-                <p className="truncate px-1.5 pb-1 text-[10.5px] text-neutral-500">{t.meta.vibe}</p>
-              </button>
-            )
-          })}
-        </div>
-
-        <div className="mt-4 flex flex-wrap items-center gap-4 border-t border-neutral-800 pt-3">
+        {/* Secondary row: accent + cloud status */}
+        <div className="mx-auto flex max-w-[1400px] flex-wrap items-center gap-4 border-t border-neutral-800/70 px-4 py-2">
           <label className="flex items-center gap-2 text-[12px] text-neutral-400">
             Accent
             <input
               type="color"
               value={accent}
               onChange={(e) => setAccent(e.target.value)}
-              className="h-7 w-9 cursor-pointer rounded border border-neutral-700 bg-transparent"
+              className="h-6 w-8 cursor-pointer rounded border border-neutral-700 bg-transparent"
             />
           </label>
           {firebaseReady ? (
-            <span className="rounded-full bg-emerald-500/15 px-2.5 py-1 text-[11px] text-emerald-300">
+            <span className="rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-[11px] text-emerald-300">
               ● Cloud saves on
             </span>
           ) : (
-            <span className="rounded-full bg-neutral-800 px-2.5 py-1 text-[11px] text-neutral-500" title="Add web/.env with Firebase keys to enable cloud saves">
+            <span
+              className="rounded-full bg-neutral-800 px-2.5 py-0.5 text-[11px] text-neutral-500"
+              title="Add web/.env with Firebase keys to enable cloud saves"
+            >
               Cloud saves off
             </span>
           )}
         </div>
-      </div>
+      </header>
 
-      {/* Two-pane editor */}
+      {/* Two-pane editor: form left, live preview center */}
       <main className="mx-auto grid max-w-[1400px] grid-cols-1 gap-5 px-4 py-5 lg:grid-cols-[420px_1fr]">
-        {/* Form */}
         <div className="no-print max-h-[calc(100vh-150px)] overflow-y-auto pr-1">
           <Form resume={resume} onChange={setResume} />
         </div>
 
-        {/* Live preview (A4 paper) */}
         <div className="resume-paper mx-auto w-full max-w-[820px] overflow-hidden rounded-md shadow-2xl shadow-black/50 ring-1 ring-neutral-800">
           <TemplateComponent resume={resume} accent={accent} />
         </div>
