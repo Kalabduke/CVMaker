@@ -2,6 +2,11 @@ import type { ComponentType } from 'react'
 import type { ResumeSchema } from '../types/resume'
 import { ModernTemplate } from './Modern'
 import { MinimalTemplate } from './Minimal'
+import { ExecutiveTemplate } from './Executive'
+import { AccountingTemplate } from './Accounting'
+import { BlueGrayTemplate } from './BlueGray'
+import { PurpleTemplate } from './Purple'
+import { OrangeTemplate } from './Orange'
 
 export interface TemplateMeta {
   id: string
@@ -36,6 +41,56 @@ export const TEMPLATES: Record<string, TemplateDefinition> = {
       defaultAccent: '#111111',
     },
     Component: MinimalTemplate,
+  },
+  executive: {
+    meta: {
+      id: 'executive',
+      name: 'Executive',
+      vibe: 'Two-column with light-gray side rail',
+      tags: ['corporate', 'gray'],
+      defaultAccent: '#52525b',
+    },
+    Component: ExecutiveTemplate,
+  },
+  accounting: {
+    meta: {
+      id: 'accounting',
+      name: 'Accounting',
+      vibe: 'Summary-led two-column layout',
+      tags: ['finance', 'clean'],
+      defaultAccent: '#1f2937',
+    },
+    Component: AccountingTemplate,
+  },
+  bluegray: {
+    meta: {
+      id: 'bluegray',
+      name: 'Blue & Gray',
+      vibe: 'Centered header with side rail',
+      tags: ['classic', 'blue'],
+      defaultAccent: '#1d4ed8',
+    },
+    Component: BlueGrayTemplate,
+  },
+  purple: {
+    meta: {
+      id: 'purple',
+      name: 'Purple & White',
+      vibe: 'Single column with centered header',
+      tags: ['elegant', 'purple'],
+      defaultAccent: '#7c3aed',
+    },
+    Component: PurpleTemplate,
+  },
+  orange: {
+    meta: {
+      id: 'orange',
+      name: 'Dark Orange',
+      vibe: 'Bold single column with orange rules',
+      tags: ['bold', 'sales'],
+      defaultAccent: '#c2410c',
+    },
+    Component: OrangeTemplate,
   },
 }
 
