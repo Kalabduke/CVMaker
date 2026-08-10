@@ -1,5 +1,14 @@
 import { Document, Image, Page, StyleSheet, Text, View, pdf } from '@react-pdf/renderer'
+import type { DocumentProps } from '@react-pdf/renderer'
+import { createRoot } from 'react-dom/client'
+import { toPng } from 'html-to-image'
+import type { ComponentType, ReactElement } from 'react'
 import type { ResumeSchema } from '../types/resume'
+import { getTemplate } from '../templates'
+
+/* ============================================================
+   Vector fallback (used if DOM capture fails)
+   ============================================================ */
 
 const styles = StyleSheet.create({
   page: {
@@ -196,9 +205,125 @@ export function ResumePdf({ resume, accent }: { resume: ResumeSchema; accent: st
   )
 }
 
-/** Render the PDF to a blob and trigger a one-click download (no print dialog). */
-export async function downloadResumePdf(resume: ResumeSchema, accent: string): Promise<void> {
-  const blob = await pdf(<ResumePdf resume={resume} accent={accent} />).toBlob()
+/* ============================================================
+   Selected-template capture: render the real template off-screen,
+   screenshot it, and slice it into A4 pages for the PDF.
+   ============================================================ */
+
+const A4_WIDTH_PX = 794 // A4 @ 96dpi
+const A4_HEIGHT_PX = 1123
+const CAPTURE_SCALE = 2 // retina-crisp slices
+
+/** Renders the chosen template off-screen and returns A4-sized PNG slices. */
+async function captureTemplateSlices(
+  resume: ResumeSchema,
+  accent: string,
+  Component: ComponentType<{ resume: ResumeSchema; accent: string }>
+): Promise<string[] | null> {
+  const host = document.createElement('div')
+  host.style.cssText = `position:fixed;top:0;left:-10000px;width:${A4_WIDTH_PX}px;background:#fff;z-index:-1;pointer-events:none;`
+  host.setAttribute('aria-hidden', 'true')
+  document.body.appendChild(host)
+
+  let root: ReturnType<typeof createRoot> | null = null
+  try {
+    root = createRoot(host)
+    root.render(<Component resume={resume} accent={accent} />)
+
+    // Give React, fonts and images time to settle before capturing.
+    await document.fonts?.ready.catch?.(() => {})
+    const imgs = [...host.querySelectorAll('img')]
+    await Promise.all(imgs.map((img) => (img.complete ? Promise.resolve() : new Promise((r) => { img.onload = r; img.onerror = r }))))
+    await new Promise((r) => setTimeout(r, 300))
+
+    // If a photo was supposed to render but failed to load (e.g. remote URL
+    // without CORS), fall back to the vector PDF rather than shipping a blank.
+    if (imgs.some((img) => img.hasAttribute('src') && img.complete && img.naturalWidth === 0)) {
+      return null
+    }
+
+    const el = host.firstElementChild as HTMLElement
+    const fullHeight = el.offsetHeight
+    if (!fullHeight) return null
+
+    const dataUrl = await toPng(el, {
+      pixelRatio: CAPTURE_SCALE,
+      backgroundColor: '#ffffff',
+      cacheBust: true,
+      width: A4_WIDTH_PX,
+      height: fullHeight,
+      style: { margin: '0' },
+    })
+
+    // DOM image (avoid name clash with react-pdf's <Image> component)
+    const img = document.createElement('img')
+    img.src = dataUrl
+    await img.decode()
+
+    const src = document.createElement('canvas')
+    src.width = img.naturalWidth
+    src.height = img.naturalHeight
+    src.getContext('2d')!.drawImage(img, 0, 0)
+
+    const pageH = A4_HEIGHT_PX * CAPTURE_SCALE
+    const slices: string[] = []
+    for (let y = 0; y < src.height; y += pageH) {
+      const h = Math.min(pageH, src.height - y)
+      const slice = document.createElement('canvas')
+      slice.width = src.width
+      slice.height = h
+      slice.getContext('2d')!.drawImage(src, 0, y, src.width, h, 0, 0, src.width, h)
+      slices.push(slice.toDataURL('image/png'))
+    }
+    return slices.length ? slices : null
+  } catch (err) {
+    console.warn('[CVMaker] template capture failed, falling back to vector PDF:', err)
+    return null
+  } finally {
+    root?.unmount()
+    host.remove()
+  }
+}
+
+/** One full-bleed page per slice — exact match to what the user sees. */
+function SlicedPdf({ slices, resume }: { slices: string[]; resume: ResumeSchema }) {
+  const c = resume.contact
+  return (
+    <Document
+      title={`${c.fullName || 'Resume'} — CV`}
+      author={c.fullName || 'CVMaker'}
+      creator="CVMaker"
+      producer="CVMaker"
+      subject={`Resume of ${c.fullName || 'candidate'}`}
+    >
+      {slices.map((src, i) => (
+        <Page key={i} size="A4" style={{ margin: 0, padding: 0 }}>
+          <Image src={src} style={{ width: '100%', height: '100%', objectFit: 'fill' }} />
+        </Page>
+      ))}
+    </Document>
+  )
+}
+
+/** Render the chosen template to a PDF blob (falls back to the vector layout). */
+export async function buildTemplatePdf(resume: ResumeSchema, accent: string, templateId: string): Promise<Blob> {
+  // getTemplate never returns undefined (falls back to minimal), so no null-check needed.
+  const template = getTemplate(templateId)
+  const slices = await captureTemplateSlices(resume, accent, template.Component)
+
+  const doc: ReactElement<DocumentProps> =
+    slices && slices.length ? (
+      <SlicedPdf slices={slices} resume={resume} />
+    ) : (
+      <ResumePdf resume={resume} accent={accent} />
+    )
+
+  return pdf(doc).toBlob()
+}
+
+/** Build the PDF for the selected template and trigger a one-click download. */
+export async function downloadResumePdf(resume: ResumeSchema, accent: string, templateId: string): Promise<void> {
+  const blob = await buildTemplatePdf(resume, accent, templateId)
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url

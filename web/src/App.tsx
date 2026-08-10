@@ -109,7 +109,7 @@ export default function App() {
     try {
       // Lazy-load react-pdf so the editor bundle stays small
       const { downloadResumePdf } = await import('./lib/pdf')
-      await downloadResumePdf(resume, accent)
+      await downloadResumePdf(resume, accent, templateId)
     } finally {
       setDownloading(false)
     }
