@@ -95,11 +95,14 @@ export function GalleryPage({ onSelect, currentTemplateId }: GalleryProps) {
             {filtered.map((t) => {
               const active = currentTemplateId === t.meta.id
               return (
-                <div
+                <button
                   key={t.meta.id}
-                  className="group relative flex flex-col overflow-hidden rounded-xl border border-neutral-800 bg-neutral-900/50 transition-all hover:-translate-y-0.5 hover:border-neutral-600 hover:shadow-xl hover:shadow-black/40"
+                  type="button"
+                  onClick={() => onSelect(t.meta.id)}
+                  aria-label={`Use the ${t.meta.name} template`}
+                  className="group relative flex cursor-pointer flex-col overflow-hidden rounded-xl border border-neutral-800 bg-neutral-900/50 text-left transition-all hover:-translate-y-0.5 hover:border-neutral-600 hover:shadow-xl hover:shadow-black/40 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
                 >
-                  <div className="p-2.5">
+                  <div className="pointer-events-none p-2.5">
                     <TemplateThumb def={t} resume={thumbResume} />
                   </div>
                   <div className="flex flex-1 flex-col px-4 pb-4">
@@ -114,18 +117,17 @@ export function GalleryPage({ onSelect, currentTemplateId }: GalleryProps) {
                       )}
                     </div>
                     <p className="mt-0.5 line-clamp-2 text-[12px] text-neutral-500">{t.meta.vibe}</p>
-                    <button
-                      onClick={() => onSelect(t.meta.id)}
-                      className={`mt-3 w-full rounded-lg py-2 text-[13px] font-bold transition-colors ${
+                    <span
+                      className={`mt-3 w-full rounded-lg py-2 text-center text-[13px] font-bold transition-colors ${
                         active
-                          ? 'bg-blue-500/20 text-blue-300 hover:bg-blue-500/30'
-                          : 'bg-blue-500 text-white hover:bg-blue-400'
+                          ? 'bg-blue-500/20 text-blue-300'
+                          : 'bg-blue-500 text-white group-hover:bg-blue-400'
                       }`}
                     >
                       {active ? 'Edit this CV' : 'Use this template'}
-                    </button>
+                    </span>
                   </div>
-                </div>
+                </button>
               )
             })}
           </div>

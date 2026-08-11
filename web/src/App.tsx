@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { ResumeSchema } from './types/resume'
 import { sampleResume } from './lib/sample'
-import { Form } from './components/Form'
+import { EditorContext, updateResumeField } from './lib/editor'
+import { InspectorPanel } from './components/InspectorPanel'
 import { getTemplate } from './templates'
 import { exportResumeJson, importResumeJson, loadResume, saveResume, loadSlug, saveSlug, loadTemplateId, saveTemplateId, loadAccent, saveAccent } from './lib/storage'
 import { saveResumeToBackend } from './lib/backend'
@@ -191,17 +192,8 @@ export default function App() {
           </div>
         </div>
 
-        {/* Secondary row: accent + cloud status */}
+        {/* Secondary row: cloud status */}
         <div className="mx-auto flex max-w-[1400px] flex-wrap items-center gap-4 border-t border-neutral-800/70 px-4 py-2">
-          <label className="flex items-center gap-2 text-[12px] text-neutral-400">
-            Accent
-            <input
-              type="color"
-              value={accent}
-              onChange={(e) => setAccent(e.target.value)}
-              className="h-6 w-8 cursor-pointer rounded border border-neutral-700 bg-transparent"
-            />
-          </label>
           {firebaseReady ? (
             <span className="rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-[11px] text-emerald-300">
               ● Cloud saves on
@@ -217,15 +209,26 @@ export default function App() {
         </div>
       </header>
 
-      {/* Two-pane editor: form left, live preview center */}
-      <main className="mx-auto grid max-w-[1400px] grid-cols-1 gap-5 px-4 py-5 lg:grid-cols-[420px_1fr]">
-        <div className="no-print max-h-[calc(100vh-150px)] overflow-y-auto pr-1">
-          <Form resume={resume} onChange={setResume} />
+      {/* Canva-style editor: canvas left, properties right */}
+      <main className="mx-auto grid max-w-[1400px] grid-cols-1 gap-5 px-4 py-5 lg:grid-cols-[1fr_340px]">
+        <div className="resume-paper mx-auto w-full max-w-[820px] overflow-hidden rounded-md shadow-2xl shadow-black/50 ring-1 ring-neutral-800">
+          <EditorContext.Provider
+            value={{
+              editable: true,
+              updateField: (path, value) =>
+                setResume((r) => updateResumeField(r, path, value)),
+            }}
+          >
+            <TemplateComponent resume={resume} accent={accent} />
+          </EditorContext.Provider>
         </div>
 
-        <div className="resume-paper mx-auto w-full max-w-[820px] overflow-hidden rounded-md shadow-2xl shadow-black/50 ring-1 ring-neutral-800">
-          <TemplateComponent resume={resume} accent={accent} />
-        </div>
+        <InspectorPanel
+          resume={resume}
+          onChange={setResume}
+          accent={accent}
+          onAccent={setAccent}
+        />
       </main>
 
       {/* Toast */}

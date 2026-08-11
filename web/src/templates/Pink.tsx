@@ -1,4 +1,5 @@
 import type { ResumeSchema } from '../types/resume'
+import { EditableText, useIsEditable } from '../components/EditableText'
 
 function SidebarTitle({ children }: { children: React.ReactNode }) {
   return (
@@ -9,14 +10,8 @@ function SidebarTitle({ children }: { children: React.ReactNode }) {
 }
 
 export function PinkTemplate({ resume, accent }: { resume: ResumeSchema; accent: string }) {
+  const editable = useIsEditable()
   const c = resume.contact
-  const contactBits: { label: string; value: string }[] = []
-  if (c.phone) contactBits.push({ label: 'Phone', value: c.phone })
-  if (c.email) contactBits.push({ label: 'Email', value: c.email })
-  if (c.website) contactBits.push({ label: 'Web', value: c.website })
-  if (c.linkedin) contactBits.push({ label: 'LinkedIn', value: c.linkedin })
-  if (c.github) contactBits.push({ label: 'GitHub', value: c.github })
-  if (c.location) contactBits.push({ label: 'Address', value: c.location })
 
   return (
     <div className="min-h-full bg-white text-neutral-800">
@@ -30,38 +25,68 @@ export function PinkTemplate({ resume, accent }: { resume: ResumeSchema; accent:
             style={{ borderColor: accent }}
           />
         )}
-        {c.fullName && (
-          <h1 className="text-[32px] font-extrabold leading-tight text-neutral-800">
-            {c.fullName}
-          </h1>
-        )}
-        {c.headline && (
-          <p className="mt-1.5 text-[13px] font-semibold uppercase tracking-[0.22em]" style={{ color: accent }}>
-            {c.headline}
-          </p>
-        )}
+        <EditableText
+          as="h1"
+          path="contact.fullName"
+          value={c.fullName}
+          className="block text-[32px] font-extrabold leading-tight text-neutral-800"
+          placeholder="Full name"
+        />
+        <EditableText
+          as="p"
+          path="contact.headline"
+          value={c.headline}
+          className="mt-1.5 block text-[13px] font-semibold uppercase tracking-[0.22em]"
+          style={{ color: accent }}
+          placeholder="Headline"
+        />
       </header>
 
       <div className="flex">
         {/* Sidebar */}
         <aside className="w-[30%] shrink-0 px-6 py-6" style={{ background: '#fdf2f8' }}>
-          {resume.summary && (
+          {(editable || resume.summary) && (
             <div className="mb-7">
               <SidebarTitle>About Me</SidebarTitle>
-              <p className="text-[12px] leading-relaxed text-neutral-600">{resume.summary}</p>
+              <EditableText
+                as="p"
+                path="summary"
+                value={resume.summary}
+                className="block text-[12px] leading-relaxed text-neutral-600"
+                placeholder="Write a short summary…"
+                multiline
+              />
             </div>
           )}
 
-          {contactBits.length > 0 && (
+          {(editable || c.phone || c.email || c.website || c.linkedin || c.github || c.location) && (
             <div className="mb-7">
               <SidebarTitle>Contact</SidebarTitle>
               <div className="space-y-1.5 text-[11.5px] text-neutral-600">
-                {contactBits.map((b) => (
-                  <p key={b.label}>
-                    <span className="font-semibold text-neutral-700">{b.label}: </span>
-                    {b.value}
-                  </p>
-                ))}
+                <p>
+                  <span className="font-semibold text-neutral-700">Phone: </span>
+                  <EditableText path="contact.phone" value={c.phone} placeholder="+251 ..." />
+                </p>
+                <p>
+                  <span className="font-semibold text-neutral-700">Email: </span>
+                  <EditableText path="contact.email" value={c.email} placeholder="email@example.com" />
+                </p>
+                <p>
+                  <span className="font-semibold text-neutral-700">Web: </span>
+                  <EditableText path="contact.website" value={c.website} placeholder="https://..." />
+                </p>
+                <p>
+                  <span className="font-semibold text-neutral-700">LinkedIn: </span>
+                  <EditableText path="contact.linkedin" value={c.linkedin} placeholder="linkedin.com/in/..." />
+                </p>
+                <p>
+                  <span className="font-semibold text-neutral-700">GitHub: </span>
+                  <EditableText path="contact.github" value={c.github} placeholder="github.com/..." />
+                </p>
+                <p>
+                  <span className="font-semibold text-neutral-700">Address: </span>
+                  <EditableText path="contact.location" value={c.location} placeholder="City, Country" />
+                </p>
               </div>
             </div>
           )}
@@ -73,7 +98,7 @@ export function PinkTemplate({ resume, accent }: { resume: ResumeSchema; accent:
                 {resume.skills.map((s) => (
                   <li key={s.id} className="flex items-center gap-2 text-[12px] text-neutral-700">
                     <span className="h-1.5 w-1.5 rounded-full" style={{ background: accent }} />
-                    {s.name}
+                    <EditableText path={`skills.${s.id}.name`} value={s.name} placeholder="Skill" />
                   </li>
                 ))}
               </ul>
@@ -86,8 +111,13 @@ export function PinkTemplate({ resume, accent }: { resume: ResumeSchema; accent:
               <ul className="space-y-1 text-[12px] text-neutral-600">
                 {resume.languages.map((l) => (
                   <li key={l.id}>
-                    {l.name}
-                    {l.proficiency ? ` — ${l.proficiency}` : ''}
+                    <EditableText path={`languages.${l.id}.name`} value={l.name} placeholder="Language" />
+                    {(editable || l.proficiency) && (
+                      <>
+                        {' '}
+                        — <EditableText path={`languages.${l.id}.proficiency`} value={l.proficiency} placeholder="Level" />
+                      </>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -106,20 +136,50 @@ export function PinkTemplate({ resume, accent }: { resume: ResumeSchema; accent:
                 {resume.experience.map((e) => (
                   <div key={e.id}>
                     <h3 className="text-[13.5px] font-extrabold uppercase tracking-wide text-neutral-800">
-                      {e.role}
-                      {e.company && <span className="font-medium text-neutral-600"> · {e.company}</span>}
+                      <EditableText path={`experience.${e.id}.role`} value={e.role} placeholder="Role" />
+                      {e.company && (
+                        <span className="font-medium text-neutral-600">
+                          {' '}
+                          · <EditableText path={`experience.${e.id}.company`} value={e.company} placeholder="Company" />
+                        </span>
+                      )}
                     </h3>
-                    {(e.startDate || e.endDate || e.current) && (
+                    {(editable || e.startDate || e.endDate || e.current) && (
                       <p className="text-[11.5px] font-medium" style={{ color: accent }}>
-                        {e.startDate} - {e.current ? 'Present' : e.endDate}
+                        <EditableText path={`experience.${e.id}.startDate`} value={e.startDate} placeholder="2023" />
+                        {' - '}
+                        <EditableText
+                          path={`experience.${e.id}.endDate`}
+                          value={e.current ? 'Present' : e.endDate}
+                          placeholder="2025"
+                        />
                       </p>
                     )}
-                    {e.location && <p className="text-[11.5px] text-neutral-500">{e.location}</p>}
-                    {e.bullets.length > 0 && (
+                    {(editable || e.location) && (
+                      <EditableText
+                        as="p"
+                        path={`experience.${e.id}.location`}
+                        value={e.location}
+                        className="block text-[11.5px] text-neutral-500"
+                        placeholder="Location"
+                      />
+                    )}
+                    {(editable || e.bullets.length > 0) && (
                       <ul className="mt-1.5 list-disc space-y-1 pl-4 text-[12.5px] leading-relaxed text-neutral-600">
                         {e.bullets.map((b, i) => (
-                          <li key={i}>{b}</li>
+                          <li key={i}>
+                            <EditableText path={`experience.${e.id}.bullets.${i}`} value={b} placeholder="Accomplishment" />
+                          </li>
                         ))}
+                        {editable && (
+                          <li>
+                            <EditableText
+                              path={`experience.${e.id}.bullets.${e.bullets.length}`}
+                              value=""
+                              placeholder="+ Add a bullet"
+                            />
+                          </li>
+                        )}
                       </ul>
                     )}
                   </div>
@@ -136,16 +196,39 @@ export function PinkTemplate({ resume, accent }: { resume: ResumeSchema; accent:
               <div className="space-y-4">
                 {resume.education.map((e) => (
                   <div key={e.id}>
-                    <h3 className="text-[13px] font-extrabold uppercase tracking-wide text-neutral-800">
-                      {e.degree}
-                    </h3>
-                    <p className="text-[12px] text-neutral-600">{e.school}</p>
-                    {(e.startDate || e.endDate) && (
+                    <EditableText
+                      as="h3"
+                      path={`education.${e.id}.degree`}
+                      value={e.degree}
+                      className="block text-[13px] font-extrabold uppercase tracking-wide text-neutral-800"
+                      placeholder="Degree"
+                    />
+                    {(editable || e.school) && (
+                      <EditableText
+                        as="p"
+                        path={`education.${e.id}.school`}
+                        value={e.school}
+                        className="block text-[12px] text-neutral-600"
+                        placeholder="School"
+                      />
+                    )}
+                    {(editable || e.startDate || e.endDate) && (
                       <p className="text-[11.5px] text-neutral-500">
-                        {e.startDate} - {e.endDate}
+                        <EditableText path={`education.${e.id}.startDate`} value={e.startDate} placeholder="2022" />
+                        {' - '}
+                        <EditableText path={`education.${e.id}.endDate`} value={e.endDate} placeholder="2025" />
                       </p>
                     )}
-                    {e.details && <p className="mt-0.5 text-[12px] text-neutral-600">{e.details}</p>}
+                    {(editable || e.details) && (
+                      <EditableText
+                        as="p"
+                        path={`education.${e.id}.details`}
+                        value={e.details}
+                        className="mt-0.5 block text-[12px] text-neutral-600"
+                        placeholder="Details"
+                        multiline
+                      />
+                    )}
                   </div>
                 ))}
               </div>
@@ -161,14 +244,34 @@ export function PinkTemplate({ resume, accent }: { resume: ResumeSchema; accent:
                 {resume.projects.map((p) => (
                   <div key={p.id}>
                     <h3 className="text-[13px] font-bold text-neutral-800">
-                      {p.name}
-                      {p.link && <span className="ml-2 text-[11px] font-normal text-neutral-500">{p.link}</span>}
+                      <EditableText path={`projects.${p.id}.name`} value={p.name} placeholder="Project name" />
+                      {(editable || p.link) && (
+                        <EditableText
+                          path={`projects.${p.id}.link`}
+                          value={p.link}
+                          className="ml-2 text-[11px] font-normal text-neutral-500"
+                          placeholder="link"
+                        />
+                      )}
                     </h3>
                     {p.description && (
-                      <p className="mt-0.5 text-[12.5px] leading-relaxed text-neutral-600">{p.description}</p>
+                      <EditableText
+                        as="p"
+                        path={`projects.${p.id}.description`}
+                        value={p.description}
+                        className="mt-0.5 block text-[12.5px] leading-relaxed text-neutral-600"
+                        placeholder="Describe the project…"
+                        multiline
+                      />
                     )}
-                    {p.tech.length > 0 && (
-                      <p className="mt-0.5 text-[11px] text-neutral-500">{p.tech.join(' · ')}</p>
+                    {(editable || p.tech.length > 0) && (
+                      <EditableText
+                        as="p"
+                        path={`projects.${p.id}.tech`}
+                        value={p.tech.join(' · ')}
+                        className="mt-0.5 block text-[11px] text-neutral-500"
+                        placeholder="Tech · stack"
+                      />
                     )}
                   </div>
                 ))}
@@ -180,15 +283,26 @@ export function PinkTemplate({ resume, accent }: { resume: ResumeSchema; accent:
             resume.custom.map((sec) => (
               <div key={sec.id} className="mb-8">
                 <h2 className="mb-4 text-[12px] font-bold uppercase tracking-[0.2em]" style={{ color: accent }}>
-                  {sec.title || 'Additional'}
+                  <EditableText path={`custom.${sec.id}.title`} value={sec.title} placeholder="Section title" />
                 </h2>
-                <ul className="space-y-1.5">
-                  {sec.items.map((it, i) => (
-                    <li key={i} className="text-[12.5px] leading-relaxed text-neutral-600">
-                      {it}
-                    </li>
-                  ))}
-                </ul>
+                {(editable || sec.items.length > 0) && (
+                  <ul className="space-y-1.5">
+                    {sec.items.map((it, i) => (
+                      <li key={i} className="text-[12.5px] leading-relaxed text-neutral-600">
+                        <EditableText path={`custom.${sec.id}.items.${i}`} value={it} placeholder="Item" multiline />
+                      </li>
+                    ))}
+                    {editable && (
+                      <li>
+                        <EditableText
+                          path={`custom.${sec.id}.items.${sec.items.length}`}
+                          value=""
+                          placeholder="+ Add item"
+                        />
+                      </li>
+                    )}
+                  </ul>
+                )}
               </div>
             ))}
         </main>

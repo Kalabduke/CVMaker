@@ -12,6 +12,28 @@ body {
   font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 }
 
+/* Canva-style inline text editing (only active inside the editor canvas) */
+.edt {
+  border-radius: 2px;
+  outline: none;
+  cursor: text;
+  transition: box-shadow 120ms ease, background-color 120ms ease;
+}
+.edt:hover {
+  box-shadow: 0 0 0 1.5px rgba(59, 130, 246, 0.55);
+  background-color: rgba(59, 130, 246, 0.06);
+}
+.edt:focus {
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.9);
+  background-color: rgba(59, 130, 246, 0.08);
+}
+.edt:empty::before {
+  content: attr(data-placeholder);
+  color: #9ca3af;
+  opacity: 0.65;
+  font-style: italic;
+}
+
 /* Hide editor chrome when printing — only the resume paper should print. */
 @media print {
   body {
