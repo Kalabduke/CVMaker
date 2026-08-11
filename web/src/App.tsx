@@ -3,6 +3,7 @@ import type { ResumeSchema } from './types/resume'
 import { sampleResume } from './lib/sample'
 import { EditorContext, updateResumeField } from './lib/editor'
 import { InspectorPanel } from './components/InspectorPanel'
+import { Form } from './components/Form'
 import { getTemplate } from './templates'
 import { exportResumeJson, importResumeJson, loadResume, saveResume, loadSlug, saveSlug, loadTemplateId, saveTemplateId, loadAccent, saveAccent } from './lib/storage'
 import { saveResumeToBackend } from './lib/backend'
@@ -42,6 +43,7 @@ export default function App() {
   const [slug, setSlug] = useState(() => loadSlug())
   const [toast, setToast] = useState('')
   const [downloading, setDownloading] = useState(false)
+  const [sideTab, setSideTab] = useState<'form' | 'design'>('form')
 
   // Keep view in sync with the hash (back/forward buttons + refresh persistence)
   useEffect(() => {
@@ -209,9 +211,49 @@ export default function App() {
         </div>
       </header>
 
-      {/* Canva-style editor: canvas left, properties right */}
-      <main className="mx-auto grid max-w-[1400px] grid-cols-1 gap-5 px-4 py-5 lg:grid-cols-[1fr_340px]">
-        <div className="resume-paper mx-auto w-full max-w-[820px] overflow-hidden rounded-md shadow-2xl shadow-black/50 ring-1 ring-neutral-800">
+      {/* Canva-style editor: side panel left (Form/Design tabs), canvas right */}
+      <main className="mx-auto grid max-w-[1400px] grid-cols-1 gap-5 px-4 py-5 lg:grid-cols-[320px_minmax(0,1fr)]">
+        {/* Left side panel — tabs so the form and the design controls both fit */}
+        <aside className="no-print order-2 lg:order-1">
+          <div role="tablist" aria-label="Editor panels" className="flex rounded-xl border border-neutral-800 bg-neutral-900/60 p-1 text-[12px] font-semibold">
+            <button
+              role="tab"
+              aria-selected={sideTab === 'form'}
+              onClick={() => setSideTab('form')}
+              className={`flex-1 rounded-lg px-3 py-2 transition ${
+                sideTab === 'form' ? 'bg-neutral-700 text-white' : 'text-neutral-400 hover:text-neutral-200'
+              }`}
+            >
+              Form
+            </button>
+            <button
+              role="tab"
+              aria-selected={sideTab === 'design'}
+              onClick={() => setSideTab('design')}
+              className={`flex-1 rounded-lg px-3 py-2 transition ${
+                sideTab === 'design' ? 'bg-neutral-700 text-white' : 'text-neutral-400 hover:text-neutral-200'
+              }`}
+            >
+              Design
+            </button>
+          </div>
+
+          <div className="mt-4 max-h-[calc(100vh-220px)] overflow-y-auto pb-6 pr-1">
+            {sideTab === 'form' ? (
+              <Form resume={resume} onChange={setResume} />
+            ) : (
+              <InspectorPanel
+                resume={resume}
+                onChange={setResume}
+                accent={accent}
+                onAccent={setAccent}
+              />
+            )}
+          </div>
+        </aside>
+
+        {/* Editable canvas — click any text to edit it in place */}
+        <div className="resume-paper mx-auto w-full max-w-[820px] overflow-hidden rounded-md shadow-2xl shadow-black/50 ring-1 ring-neutral-800 order-1 lg:order-2">
           <EditorContext.Provider
             value={{
               editable: true,
@@ -222,13 +264,6 @@ export default function App() {
             <TemplateComponent resume={resume} accent={accent} />
           </EditorContext.Provider>
         </div>
-
-        <InspectorPanel
-          resume={resume}
-          onChange={setResume}
-          accent={accent}
-          onAccent={setAccent}
-        />
       </main>
 
       {/* Toast */}
